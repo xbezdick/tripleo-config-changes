@@ -10,6 +10,8 @@ The tests require an undercloud or overcloud to be available for testing the con
 
 Contributing new tests
 -----------------------------
+Code changes can be submitted via [review.gerrithub.io](https://review.gerrithub.io/admin/projects/rhos-infra/tripleo-config-changes)
+
 We'll take the noop test as example and detail the steps required for adding it.
 
 The noop test only re-runs
