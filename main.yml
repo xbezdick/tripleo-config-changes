@@ -1,0 +1,4 @@
+---
+- name: Run noop changes
+  import_playbook: tasks/noop/main.yml
+  when: test.noop|default(False)

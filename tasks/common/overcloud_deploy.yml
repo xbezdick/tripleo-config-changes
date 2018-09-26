@@ -1,0 +1,19 @@
+---
+- name: Re-run overcloud deploy script to apply changes
+  shell: |
+    source ~/stackrc
+    bash ~/overcloud_deploy.sh &> ~/overcloud_deploy_rerun.log
+  register: overcloud_deploy
+  ignore_errors: yes
+
+- block:
+    - name: Print stack failures
+      shell: |
+        set -o pipefail
+        source /home/stack/stackrc
+        openstack stack failures list --long {{ test.overcloud.stack }} 2>&1 | \
+        tee ~/overcloud_deploy_rerun_failures.log
+
+    - name: Was the overcloud deploy re-run successful.
+      fail: msg="Re-running overcloud deploy failed... :("
+  when: overcloud_deploy.rc != 0

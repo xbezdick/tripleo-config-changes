@@ -1,0 +1,7 @@
+---
+- name: Validate noop changes
+  hosts: overcloud_nodes
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - meta: noop
