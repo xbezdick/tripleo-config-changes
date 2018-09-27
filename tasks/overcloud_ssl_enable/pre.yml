@@ -1,0 +1,136 @@
+---
+- name: copy the enable-tls.yaml file locally
+  copy:
+      src: "/usr/share/openstack-tripleo-heat-templates/environments/{{ item }}"
+      dest: "~/{{ item }}"
+      remote_src: yes
+  with_items:
+        - enable-tls.yaml
+        - inject-trust-anchor.yaml
+  register: copy_templates
+
+- name: adjust the reference of template dir
+  replace:
+      path: "{{ item.dest }}"
+      replace: "/usr/share/openstack-tripleo-heat-templates"
+      regexp: '\.\.'
+  with_items: "{{ copy_templates.results }}"
+
+- name: discover undercloud ssl
+  command: "grep -Fq OS_AUTH_URL=https {{ openstackrc }}"
+  vars:
+      openstackrc: ~/stackrc
+  register: undercloud_ssl
+  failed_when: false
+  changed_when: false
+
+- name: create the self signed SSL
+  command: "openssl genrsa -out ~/overcloud-privkey.pem 2048"
+  when: not undercloud_ssl.rc == 0
+
+- name: register vipmap
+  shell: |
+      source ~/stackrc
+      openstack stack output show overcloud VipMap -f json
+  register: vipmap
+
+- name: set public vip fact
+  set_fact:
+    external_allocation_pool_start: "{{ (vipmap.stdout|from_json).output_value.external_uri }}"
+
+- name: create CA certificate
+  vars:
+      self_signed: >
+          -new -x509
+          -key ~/overcloud-privkey.pem
+      uc_signed: >
+          -newkey rsa:2048 -nodes
+          -keyout ~/overcloud-privkey.pem
+  command: >
+      openssl req
+      {{ uc_signed if undercloud_ssl.rc == 0 else self_signed }}
+      -out ~/overcloud-cacert.pem -days 365
+      -subj '/C=US/ST=NC/L=Raleigh/O=Red HAt/OU=QE/CN={{ external_allocation_pool_start }}'
+
+- name: process server RSA keys
+  command: "openssl rsa -in ~/overcloud-privkey.pem  -out ~/overcloud-privkey.pem"
+  when: undercloud_ssl.rc == 0
+
+- name: sign request with undercloud CA
+  vars:
+      undercloud_pkey: ~/undercloud-privkey.pem
+      undercloud_cacert: /etc/pki/ca-trust/source/anchors/undercloud-cacert.pem
+  command: >
+      openssl x509 -req
+      -in ~/overcloud-cacert.pem -days 365
+      -CA {{ undercloud_cacert }}
+      -CAkey {{ undercloud_pkey }}
+      -set_serial 01
+      -out ~/overcloud-cacert.pem
+  when: undercloud_ssl.rc == 0
+
+- name: update the tls template
+  replace:
+      dest: "~/enable-tls.yaml"
+      replace: IP_ADDRESS
+      regexp: CLOUDNAME
+
+- name: copy the self signed CA certification to our trusted store
+  copy:
+      src: "/home/stack/overcloud-cacert.pem"
+      dest: "/etc/pki/ca-trust/source/anchors/"
+      remote_src: yes
+  become: yes
+
+- name: update our CA store to reflect our addition
+  command: "update-ca-trust extract"
+  become: yes
+
+- name: register the CA certificate
+  command: "cat ~/overcloud-cacert.pem"
+  register: oc_cacert
+
+- name: register the CA certificate
+  command: cat /etc/pki/ca-trust/source/anchors/undercloud-cacert.pem
+  register: uc_cacert
+  when: undercloud_ssl.rc == 0
+
+- name: register the private key
+  command: "cat ~/overcloud-privkey.pem"
+  register: private_key
+
+- name: insert the content of the CA certificate and private key respectfully
+  vars:
+      root_cert: "{{ uc_cacert if undercloud_ssl.rc == 0 else oc_cacert}}"
+  replace:
+      dest: "{{ item.dest }}"
+      regexp: "{{ item.regex }}"
+      replace: "{{ item.replace_with }}"
+  with_items:
+      - dest: "~/enable-tls.yaml"
+        regex: "The contents of your certificate.*$"
+        replace_with: "{{ oc_cacert.stdout | indent(4) | string }}"
+      - dest: "~/enable-tls.yaml"
+        regex: "The contents of the private key.*$"
+        replace_with: "{{ private_key.stdout | indent(4) | string }}"
+      - dest: "~/inject-trust-anchor.yaml"
+        regex: "The contents of your (root CA )?certificate go here.*$"
+        replace_with: "{{ root_cert.stdout | indent(4) | string }}"
+
+- name: create public VIP environment file
+  template:
+      src: templates/public_vip.yaml.j2
+      dest: "~/public_vip.yaml"
+
+- name: Create overcloud deploy command including the SSL environment files
+  include: ../common/append_env_to_script.yml
+  loop_control:
+    loop_var: confchange
+  with_items:
+    - step: "Enable SSL on overcloud"
+      script: "~/overcloud_deploy_enable_ssl.sh"
+      environment_file:
+        - "/usr/share/openstack-tripleo-heat-templates/environments/tls-endpoints-public-ip.yaml"
+        - "~/enable-tls.yaml"
+        - "~/inject-trust-anchor.yaml"
+        - "~/public_vip.yaml"

@@ -1,0 +1,12 @@
+---
+- name: Validate SSL got enabled
+  hosts: undercloud-0
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Validate the public endpoints are SSL enabled
+      shell: |
+        source ~/{{ test.overcloud.stack }}rc
+        openstack catalog list -f value -c Endpoints  | grep public | grep http:// | wc -l
+      register: non_ssl_endpoints
+      failed_when: "non_ssl_endpoints.stdout|int > 0"

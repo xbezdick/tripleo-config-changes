@@ -1,0 +1,33 @@
+---
+- name: Create {{ confchange.step }} base script
+  copy:
+      src: "~/overcloud_deploy.sh"
+      dest: "{{ confchange.script }}"
+      mode: 0755
+      remote_src: true
+
+- name: Store last deploy command line
+  command: "tail -1 {{ confchange.script }}"
+  register: deploy_lastline
+
+- name: Append params to {{ confchange.step }} script
+  lineinfile:
+      dest: "{{ confchange.script }}"
+      insertbefore: "{{ deploy_lastline.stdout }}"
+      line: '-e {{ item }} \'
+  with_items: "{{ confchange.environment_file }}"
+  when: item|length > 0
+
+- name: Append options to {{ confchange.step }} script
+  lineinfile:
+      dest: "{{ confchange.script }}"
+      insertbefore: "{{ deploy_lastline.stdout }}"
+      line: '--{{ item }} \'
+  with_items: "{{ confchange.option|default('') }}"
+  when: item|length > 0
+
+- name: Change log file name of {{ confchange.step }} script
+  lineinfile:
+      dest: "{{ confchange.script }}"
+      regexp: '^--log-file.*'
+      state: absent

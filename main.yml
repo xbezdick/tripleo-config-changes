@@ -2,3 +2,7 @@
 - name: Run noop changes
   import_playbook: tasks/noop/main.yml
   when: test.noop|default(False)
+
+- name: Enable overcloud ssl
+  import_playbook: tasks/overcloud_ssl_enable/main.yml
+  when: test.overcloud.ssl.enable|default(False)

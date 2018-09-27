@@ -1,0 +1,12 @@
+---
+- name: Enable SSL on overcloud
+  hosts: undercloud-0
+  gather_facts: yes
+  any_errors_fatal: true
+  pre_tasks:
+    - import_tasks: pre.yml
+  tasks:
+    - import_tasks: deploy.yml
+
+- name: Run post noop validation
+  import_playbook: post.yml
