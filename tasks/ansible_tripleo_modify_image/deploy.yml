@@ -1,0 +1,4 @@
+---
+- import_tasks: ../common/overcloud_deploy.yml
+  vars:
+    overcloud_deploy_script: '~/overcloud_modify_image.sh'

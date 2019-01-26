@@ -1,0 +1,101 @@
+- name: make copy of containers-prepare-parameter.yaml
+  copy:
+      src: "~/containers-prepare-parameter.yaml"
+      dest: "~/containers-prepare-parameter-copy.yaml"
+      remote_src: yes
+
+- name: get overcloud_version
+  shell: cat /etc/rhosp-release  |awk -F"." '{print $1}'| awk '{print $6}'
+  register: rhosp_release
+
+- set_fact:
+    rhosp_version: "{{ rhosp_release.stdout }}"
+
+- name: create /home/stack/{{ test.tripleo.modify.container }}-modify-dir  directory
+  file:
+    path: ~/{{ test.tripleo.modify.container }}-modify-dir
+    state: directory
+  when: test.tripleo.modify.method == "rpm" or test.tripleo.modify.method == "modify-image"
+
+- name: download test package to node
+  get_url:
+    url: " {{ test.tripleo.modify.url }} "
+    dest: ~/{{ test.tripleo.modify.container }}-modify-dir
+  when: test.tripleo.modify.method == "rpm" or test.tripleo.modify.method == "modify-image"
+
+- name: include tripleo-modify-image using rpm method in containers-prepare-parameter-copy.yaml
+  blockinfile:
+    path: "~/containers-prepare-parameter-copy.yaml"
+    block: |1+
+       - includes:
+         - {{ test.tripleo.modify.container }}
+         modify_role: tripleo-modify-image
+         modify_append_tag: "-hotfix"
+         modify_vars:
+          tasks_from: rpm_install.yml
+          rpms_path: /home/stack/{{ test.tripleo.modify.container }}-modify-dir
+  when: test.tripleo.modify.method == "rpm"
+
+- name: include tripleo-modify-image using yum-update method in containers-prepare-parameter-copy.yaml
+  blockinfile:
+    path: "~/containers-prepare-parameter-copy.yaml"
+    block: |1+
+       - includes:
+         - {{ test.tripleo.modify.container }}
+         modify_role: tripleo-modify-image
+         modify_append_tag: "-hotfix"
+         modify_vars:
+          tasks_from: yum_update.yml
+          compare_host_packages: true
+          yum_repos_dir_path: /etc/yum.repos.d
+  when: test.tripleo.modify.method == "yum-update"
+
+- name: include tripleo-modify-image using modify-image method in containers-prepare-parameter-copy.yaml
+  blockinfile:
+    path: "~/containers-prepare-parameter-copy.yaml"
+    block: |1+
+       - includes:
+         - {{ test.tripleo.modify.container }}
+         modify_role: tripleo-modify-image
+         modify_append_tag: "-hotfix"
+         modify_vars:
+          tasks_from: modify_image.yml
+          modify_dir_path: /home/stack/{{ test.tripleo.modify.container }}-modify-dir
+  when: test.tripleo.modify.method == "modify-image"
+
+- name: execute 'openstack tripleo container image prepare'
+  shell: openstack tripleo container image prepare -e ~/containers-prepare-parameter-copy.yaml | tee prepare_output.yaml
+  register: openstack_tripleo_container_image_prepare
+  failed_when: '"openstack-{{ test.tripleo.modify.container }}:latest-hotfix" not in openstack_tripleo_container_image_prepare.stdout'
+
+- name: get container image configuration for {{ test.tripleo.modify.container }}
+  shell: cat ~/prepare_output.yaml | grep {{ test.tripleo.modify.container }}
+  register: container_image_configuration
+
+- name: write container image configuration for {{ test.tripleo.modify.container  }} to hotfix.yaml
+  blockinfile:
+    create: yes
+    path: "~/hotfix.yaml"
+    block: |
+       parameter_defaults:
+       {{ container_image_configuration.stdout }}
+
+- name: replace remote registry to local insecure
+  replace:
+    path: ~/hotfix.yaml
+    regexp: 'registry.access.redhat.com'
+    replace: '{{ ansible_br_ctlplane.ipv4.address }}:8787'
+
+- name: pull modified docker image to local registry
+  docker_image:
+    name: "{{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:latest-hotfix"
+
+- name: Create overcloud deploy command including the hotfix.yaml
+  include: ../common/append_env_to_script.yml
+  loop_control:
+    loop_var: confchange
+  with_items:
+    - step: "update {{ test.tripleo.modify.container }} overcloud image"
+      script: "~/overcloud_modify_image.sh"
+      environment_file:
+        - "~/hotfix.yaml"
