@@ -13,7 +13,7 @@
   replace:
       path: "{{ item.dest }}"
       replace: "/usr/share/openstack-tripleo-heat-templates"
-      regexp: '\.\.'
+      regexp: '\.\./\.\.'
   with_items: "{{ copy_templates.results }}"
 
 - name: discover undercloud ssl
