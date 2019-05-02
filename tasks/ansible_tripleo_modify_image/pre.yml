@@ -64,7 +64,7 @@
   when: test.tripleo.modify.method == "modify-image"
 
 - name: execute 'openstack tripleo container image prepare'
-  shell: openstack tripleo container image prepare -e ~/containers-prepare-parameter-copy.yaml | tee prepare_output.yaml
+  shell: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml | tee /home/stack/prepare_output.yaml
   register: openstack_tripleo_container_image_prepare
   failed_when: '"openstack-{{ test.tripleo.modify.container }}:latest-hotfix" not in openstack_tripleo_container_image_prepare.stdout'
   become: true
