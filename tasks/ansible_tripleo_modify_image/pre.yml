@@ -67,6 +67,7 @@
   shell: openstack tripleo container image prepare -e ~/containers-prepare-parameter-copy.yaml | tee prepare_output.yaml
   register: openstack_tripleo_container_image_prepare
   failed_when: '"openstack-{{ test.tripleo.modify.container }}:latest-hotfix" not in openstack_tripleo_container_image_prepare.stdout'
+  become: true
 
 - name: get container image configuration for {{ test.tripleo.modify.container }}
   shell: cat ~/prepare_output.yaml | grep {{ test.tripleo.modify.container }}
