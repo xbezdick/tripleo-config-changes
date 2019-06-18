@@ -23,11 +23,30 @@
     dest: ~/{{ test.tripleo.modify.container }}-modify-dir
   when: test.tripleo.modify.method == "rpm" or test.tripleo.modify.method == "modify-image"
 
+- name: get namespace
+  shell: grep namespace containers-prepare-parameter.yaml |grep -v ceph_ |awk -F ' '  '{print $2}'
+  register: namespace_output
+
+- name: get tag
+  shell: grep tag containers-prepare-parameter.yaml |grep -v ceph_tag |awk '{$1=$1;print}'
+  register: tag_output
+
+- set_fact:
+    namespace: "{{ namespace_output.stdout }}"
+- set_fact:
+    tag: "{{ tag_output.stdout }}"
+
 - name: include tripleo-modify-image using rpm method in containers-prepare-parameter-copy.yaml
   blockinfile:
     path: "~/containers-prepare-parameter-copy.yaml"
     block: |1+
-       - includes:
+       - push_destination: true
+         set:
+           name_prefix: openstack-
+           name_suffix: ''
+           namespace: {{ namespace }}
+           {{ tag }}
+         includes:
          - {{ test.tripleo.modify.container }}
          modify_role: tripleo-modify-image
          modify_append_tag: "-hotfix"
@@ -40,7 +59,13 @@
   blockinfile:
     path: "~/containers-prepare-parameter-copy.yaml"
     block: |1+
-       - includes:
+       - push_destination: true
+         set:
+           name_prefix: openstack-
+           name_suffix: ''
+           namespace: {{ namespace }}
+           {{ tag }}
+         includes:
          - {{ test.tripleo.modify.container }}
          modify_role: tripleo-modify-image
          modify_append_tag: "-hotfix"
@@ -54,7 +79,13 @@
   blockinfile:
     path: "~/containers-prepare-parameter-copy.yaml"
     block: |1+
-       - includes:
+       - push_destination: true
+         set:
+           name_prefix: openstack-
+           name_suffix: ''
+           namespace: {{ namespace }}
+           {{ tag }}
+         includes:g
          - {{ test.tripleo.modify.container }}
          modify_role: tripleo-modify-image
          modify_append_tag: "-hotfix"
@@ -64,14 +95,16 @@
   when: test.tripleo.modify.method == "modify-image"
 
 - name: execute 'openstack tripleo container image prepare'
-  shell: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml | tee /home/stack/prepare_output.yaml
+  shell: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml --output-env-file /home/stack/prepare_output.yaml
   register: openstack_tripleo_container_image_prepare
-  failed_when: '"openstack-{{ test.tripleo.modify.container }}:latest-hotfix" not in openstack_tripleo_container_image_prepare.stdout'
   become: true
+  ignore_errors: yes
+
 
 - name: get container image configuration for {{ test.tripleo.modify.container }}
-  shell: cat ~/prepare_output.yaml | grep {{ test.tripleo.modify.container }}
+  shell: cat ~/prepare_output.yaml | grep {{ test.tripleo.modify.container }} | grep -v Ironic
   register: container_image_configuration
+  failed_when: '"-hotfix" not in container_image_configuration.stdout'
 
 - name: write container image configuration for {{ test.tripleo.modify.container  }} to hotfix.yaml
   blockinfile:
@@ -86,10 +119,16 @@
     path: ~/hotfix.yaml
     regexp: 'registry.access.redhat.com'
     replace: '{{ ansible_br_ctlplane.ipv4.address }}:8787'
+  when: rhosp_version|int == 14
 
 - name: pull modified docker image to local registry
   docker_image:
     name: "{{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:latest-hotfix"
+  when: rhosp_version|int == 14
+
+- name: pull modified podman image to local registry
+  shell: "podman pull {{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:{{ tag | replace('tag: ', '')}}-hotfix"
+  become: yes
 
 - name: Create overcloud deploy command including the hotfix.yaml
   include: ../common/append_env_to_script.yml
