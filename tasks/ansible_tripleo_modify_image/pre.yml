@@ -85,7 +85,7 @@
            name_suffix: ''
            namespace: {{ namespace }}
            {{ tag }}
-         includes:g
+         includes:
          - {{ test.tripleo.modify.container }}
          modify_role: tripleo-modify-image
          modify_append_tag: "-hotfix"
