@@ -24,11 +24,11 @@
   when: test.tripleo.modify.method == "rpm" or test.tripleo.modify.method == "modify-image"
 
 - name: get namespace
-  shell: grep namespace containers-prepare-parameter.yaml |grep -v ceph_ |awk -F ' '  '{print $2}'
+  shell: grep "[[:space:]]namespace:" containers-prepare-parameter.yaml | awk -F ' '  '{print $2}'
   register: namespace_output
 
 - name: get tag
-  shell: grep tag containers-prepare-parameter.yaml |grep -v ceph_tag |awk '{$1=$1;print}'
+  shell: grep "[[:space:]]tag:" containers-prepare-parameter.yaml |awk '{$1=$1;print}'
   register: tag_output
 
 - set_fact:
