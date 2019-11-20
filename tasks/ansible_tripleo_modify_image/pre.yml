@@ -23,86 +23,81 @@
     dest: ~/{{ test.tripleo.modify.container }}-modify-dir
   when: test.tripleo.modify.method == "rpm" or test.tripleo.modify.method == "modify-image"
 
-- name: get namespace
-  shell: grep "[[:space:]]namespace:" containers-prepare-parameter.yaml | awk -F ' '  '{print $2}'
-  register: namespace_output
+- name: Slurp container prepare parameter
+  slurp:
+    src: "{{ ansible_env.HOME }}/containers-prepare-parameter.yaml"
+  register: slurp_containers_prepare_parameter
 
-- name: get tag
-  shell: grep "[[:space:]]tag:" containers-prepare-parameter.yaml |awk '{$1=$1;print}'
-  register: tag_output
+- name: Set container prepare parameter facts
+  set_fact:
+    containers_prepare_parameter: "{{ slurp_containers_prepare_parameter['content'] | b64decode | from_yaml }}"
 
-- set_fact:
-    namespace: "{{ namespace_output.stdout }}"
-- set_fact:
-    tag: "{{ tag_output.stdout }}"
+- name: Set job facts
+  set_fact:
+    namespace: "{{ containers_prepare_parameter['parameter_defaults']['ContainerImagePrepare'][0]['set']['namespace'] }}"
+    tag: "{{ containers_prepare_parameter['parameter_defaults']['ContainerImagePrepare'][0]['set']['tag'] }}"
 
-- name: include tripleo-modify-image using rpm method in containers-prepare-parameter-copy.yaml
-  blockinfile:
-    path: "~/containers-prepare-parameter-copy.yaml"
-    block: |1+
-       - push_destination: true
-         set:
-           name_prefix: openstack-
-           name_suffix: ''
-           namespace: {{ namespace }}
-           {{ tag }}
-         includes:
-         - {{ test.tripleo.modify.container }}
-         modify_role: tripleo-modify-image
-         modify_append_tag: "-hotfix"
-         modify_vars:
-          tasks_from: rpm_install.yml
-          rpms_path: /home/stack/{{ test.tripleo.modify.container }}-modify-dir
-  when: test.tripleo.modify.method == "rpm"
-
-- name: include tripleo-modify-image using yum-update method in containers-prepare-parameter-copy.yaml
-  blockinfile:
-    path: "~/containers-prepare-parameter-copy.yaml"
-    block: |1+
-       - push_destination: true
-         set:
-           name_prefix: openstack-
-           name_suffix: ''
-           namespace: {{ namespace }}
-           {{ tag }}
-         includes:
-         - {{ test.tripleo.modify.container }}
-         modify_role: tripleo-modify-image
-         modify_append_tag: "-hotfix"
-         modify_vars:
-          tasks_from: yum_update.yml
-          compare_host_packages: true
-          yum_repos_dir_path: /etc/yum.repos.d
-  when: test.tripleo.modify.method == "yum-update"
-
-- name: include tripleo-modify-image using modify-image method in containers-prepare-parameter-copy.yaml
-  blockinfile:
-    path: "~/containers-prepare-parameter-copy.yaml"
-    block: |1+
-       - push_destination: true
-         set:
-           name_prefix: openstack-
-           name_suffix: ''
-           namespace: {{ namespace }}
-           {{ tag }}
-         includes:
-         - {{ test.tripleo.modify.container }}
-         modify_role: tripleo-modify-image
-         modify_append_tag: "-hotfix"
-         modify_vars:
-          tasks_from: modify_image.yml
-          modify_dir_path: /home/stack/{{ test.tripleo.modify.container }}-modify-dir
-  when: test.tripleo.modify.method == "modify-image"
+- name: Generate container prepare parameter copy
+  copy:
+    content: |
+      {% set original = containers_prepare_parameter %}
+      {%
+        set item = {
+          "push_destination": true,
+          "set": {
+            "name_prefix": "openstack-",
+            "name_suffix": "",
+            "namespace": (namespace | string),
+            "tag": (tag | string)
+          },
+          "includes": [
+              (test.tripleo.modify.container | string)
+          ],
+          "modify_role": "tripleo-modify-image",
+          "modify_append_tag": "-hotfix"
+        }
+      %}
+      {% if test.tripleo.modify.method == "rpm" %}
+      {%
+        set modify = {
+          "modify_vars": {
+            "tasks_from": "rpm_install.yml",
+            "rpms_path": "/home/stack/" ~ test.tripleo.modify.container ~ "-modify-dir"
+          }
+        }
+      %}
+      {% elif test.tripleo.modify.method == "yum-update" %}
+      {%
+        set modify = {
+          "modify_vars": {
+            "tasks_from": "yum_update.yml",
+            "compare_host_packages": true,
+            "yum_repos_dir_path": "/etc/yum.repos.d"
+          }
+        }
+      %}
+      {% elif test.tripleo.modify.method == "modify-image" %}
+      {%
+        set modify = {
+          "modify_vars": {
+            "tasks_from": "modify_image.yml",
+            "modify_dir_path": "/home/stack/" ~ test.tripleo.modify.container ~ "-modify-dir"
+          }
+        }
+      %}
+      {% endif %}
+      {% set _ = item.update(modify) %}
+      {% set _ = original['parameter_defaults']['ContainerImagePrepare'].append(item) %}
+      {{ original | to_nice_yaml }}
+    dest: "{{ ansible_env.HOME }}/containers-prepare-parameter-copy.yaml"
 
 - name: execute 'openstack tripleo container image prepare'
-  shell: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml --output-env-file /home/stack/prepare_output.yaml
+  command: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml --output-env-file /home/stack/prepare_output.yaml
   register: openstack_tripleo_container_image_prepare
   become: true
-  ignore_errors: yes
-
 
 - name: get container image configuration for {{ test.tripleo.modify.container }}
-  shell: cat ~/prepare_output.yaml | grep {{ test.tripleo.modify.container }} | grep -v Ironic
+  shell: grep {{ test.tripleo.modify.container }} ~/prepare_output.yaml | grep -v Ironic
   register: container_image_configuration
   failed_when: '"-hotfix" not in container_image_configuration.stdout'
 
