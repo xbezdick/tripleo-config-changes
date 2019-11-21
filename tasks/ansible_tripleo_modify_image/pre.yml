@@ -34,6 +34,8 @@
 
 - name: Set job facts
   set_fact:
+    name_prefix: "{{ containers_prepare_parameter['parameter_defaults']['ContainerImagePrepare'][0]['set']['name_prefix'] }}"
+    name_suffix: "{{ containers_prepare_parameter['parameter_defaults']['ContainerImagePrepare'][0]['set']['name_suffix'] }}"
     namespace: "{{ containers_prepare_parameter['parameter_defaults']['ContainerImagePrepare'][0]['set']['namespace'] }}"
     tag: "{{ containers_prepare_parameter['parameter_defaults']['ContainerImagePrepare'][0]['set']['tag'] }}"
 
@@ -45,8 +47,8 @@
         set item = {
           "push_destination": true,
           "set": {
-            "name_prefix": "openstack-",
-            "name_suffix": "",
+            "name_prefix": (name_prefix | string),
+            "name_suffix": (name_suffix | string),
             "namespace": (namespace | string),
             "tag": (tag | string)
           },
