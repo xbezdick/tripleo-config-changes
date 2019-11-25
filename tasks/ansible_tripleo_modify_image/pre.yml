@@ -111,21 +111,30 @@
        parameter_defaults:
        {{ container_image_configuration.stdout }}
 
-- name: replace remote registry to local insecure
-  replace:
-    path: ~/hotfix.yaml
-    regexp: 'registry.access.redhat.com'
-    replace: '{{ ansible_br_ctlplane.ipv4.address }}:8787'
+- name: OSP14 registry test
   when: rhosp_version|int == 14
+  block:
+    - name: replace remote registry to local insecure
+      replace:
+        path: ~/hotfix.yaml
+        regexp: 'registry.access.redhat.com'
+        replace: '{{ ansible_br_ctlplane.ipv4.address }}:8787'
+    - name: pull modified docker image to local registry
+      docker_image:
+        name: "{{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:latest-hotfix"
 
-- name: pull modified docker image to local registry
-  docker_image:
-    name: "{{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:latest-hotfix"
-  when: rhosp_version|int == 14
-
-- name: pull modified podman image to local registry
-  shell: "podman pull {{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:{{ tag | replace('tag: ', '')}}-hotfix"
-  become: yes
+- name: OSP15+ registry test
+  when: rhosp_version|int > 14
+    - name: Fetch registry host information
+      slurp:
+        src: /etc/httpd/conf.d/image-serve.conf
+      register: slurp_image_serve
+    - name: Parse registry host
+      set_fact:
+        image_serve_host: "{{ slurp_image_serve['content'] | b64decode | regex_search('<VirtualHost (.*):8787>') | regex_replace('<VirtualHost (.*):8787>', '\\1') }}"
+    - name: pull modified podman image to local registry
+      shell: "podman pull {{ image_serve_host }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:{{ tag | replace('tag: ', '')}}-hotfix"
+      become: yes
 
 - name: Create overcloud deploy command including the hotfix.yaml
   include: ../common/append_env_to_script.yml
