@@ -125,6 +125,7 @@
 
 - name: OSP15+ registry test
   when: rhosp_version|int > 14
+  block:
     - name: Fetch registry host information
       slurp:
         src: /etc/httpd/conf.d/image-serve.conf
