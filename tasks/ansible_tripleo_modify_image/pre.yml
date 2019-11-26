@@ -113,7 +113,7 @@
 
 - name: Get Image url
   set_fact:
-      hotfix_data: "{{ container_image_configuration.stdout | from_yaml }"
+      hotfix_data: "{{ container_image_configuration.stdout | from_yaml }}"
 
 - name: OSP14 registry test
   when: rhosp_version|int == 14
