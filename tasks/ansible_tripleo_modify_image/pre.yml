@@ -94,7 +94,7 @@
     dest: "{{ ansible_env.HOME }}/containers-prepare-parameter-copy.yaml"
 
 - name: execute 'openstack tripleo container image prepare'
-  command: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml --output-env-file /home/stack/prepare_output.yaml
+  command: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml --output-env-file /home/stack/prepare_output.yaml --log-file /var/log/tripleo-container-image-prepare.log --debug
   register: openstack_tripleo_container_image_prepare
   become: true
 
