@@ -111,6 +111,10 @@
        parameter_defaults:
        {{ container_image_configuration.stdout }}
 
+- name: Get Image url
+  set_fact:
+      hotfix_data: "{{ container_image_configuration.stdout | from_yaml }"
+
 - name: OSP14 registry test
   when: rhosp_version|int == 14
   block:
@@ -119,23 +123,23 @@
         path: ~/hotfix.yaml
         regexp: 'registry.access.redhat.com'
         replace: '{{ ansible_br_ctlplane.ipv4.address }}:8787'
+
     - name: pull modified docker image to local registry
       docker_image:
-        name: "{{ ansible_br_ctlplane.ipv4.address }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:latest-hotfix"
+        name: "{{ _container_data.value }}"
+      loop_control:
+        loop_var: _container_data
+      loop: "{{ hotfix_data | dict2items }}"
 
 - name: OSP15+ registry test
   when: rhosp_version|int > 14
   block:
-    - name: Fetch registry host information
-      slurp:
-        src: /etc/httpd/conf.d/image-serve.conf
-      register: slurp_image_serve
-    - name: Parse registry host
-      set_fact:
-        image_serve_host: "{{ slurp_image_serve['content'] | b64decode | regex_search('<VirtualHost (.*):8787>') | regex_replace('<VirtualHost (.*):8787>', '\\1') }}"
     - name: pull modified podman image to local registry
-      shell: "podman pull {{ image_serve_host }}:8787/rhosp{{ rhosp_version }}/openstack-{{ test.tripleo.modify.container }}:{{ tag | replace('tag: ', '')}}-hotfix"
+      shell: "podman pull {{ _container_data.value }}"
       become: yes
+      loop_control:
+        loop_var: _container_data
+      loop: "{{ hotfix_data | dict2items }}"
 
 - name: Create overcloud deploy command including the hotfix.yaml
   include: ../common/append_env_to_script.yml
