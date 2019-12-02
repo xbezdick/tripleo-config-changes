@@ -5,15 +5,15 @@
   any_errors_fatal: true
   tasks:
     - name: Validate the public endpoints are SSL enabled
-      # use || : because we don't want to fail if not found (aka success)
       shell: |
         source ~/{{ test.overcloud.stack }}rc
-        openstack endpoint list --column 'URL' --format 'value' --interface 'public' | grep 'http://' || :
+        openstack endpoint list --column 'URL' --format 'value' --interface 'public' | grep 'http://'
+      failed_when: false
       register: non_ssl_endpoints
 
     - name: Test block
       when:
-         - (non_ssl_endpoints.stdout_lines | length) > 0
+        - non_ssl_endpoints.rc == 0
       block:
         - name: Pull all endpoint information
           shell: |
