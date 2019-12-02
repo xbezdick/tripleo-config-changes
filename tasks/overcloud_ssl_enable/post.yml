@@ -7,6 +7,22 @@
     - name: Validate the public endpoints are SSL enabled
       shell: |
         source ~/{{ test.overcloud.stack }}rc
-        openstack catalog list -f value -c Endpoints  | grep public | grep http:// | wc -l
+        openstack endpoint list --column 'URL' --format 'value' --interface 'public' | grep 'http://'
       register: non_ssl_endpoints
-      failed_when: "non_ssl_endpoints.stdout|int > 0"
+
+    - name: Test block
+      when:
+         - (non_ssl_endpoints.stdout_lines | length) > 0
+      block:
+        - name: Pull all endpoint information
+          shell: |
+            source ~/{{ test.overcloud.stack }}rc
+            openstack endpoint list --column 'URL' --column 'Service Name' --format 'yaml' --interface 'public'
+          register: all_endpoints
+
+        - name: Failure message
+          fail:
+            msg: >-
+              The SSL endpoint check has failed. Not all public endpoints have been created with TLS.
+              All public endpoint data can be seen here -> {{ all_endpoints.stdout | from_yaml }}.
+              Check the configuration and try again.
