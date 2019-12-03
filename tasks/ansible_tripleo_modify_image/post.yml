@@ -11,3 +11,4 @@
       failed_when: '"-hotfix" not in containers_list.stdout'
       become: true
       become_method: sudo
+      when: test.tripleo.modify.image|default(False)
