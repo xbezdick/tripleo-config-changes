@@ -1,0 +1,55 @@
+- name: download the cirros image for instance deployment post_tasks
+  get_url:
+        url: http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
+        dest: /home/stack
+
+- name: create cell1 directory
+  file:
+        path: /home/stack/cell1
+        state: directory
+
+- name: export cell-input.yaml file
+  shell: |
+        source ~/stackrc
+        openstack overcloud cell export cell1 -f -o /home/stack/cell1/cell-input.yaml
+
+- name: Generate a role file
+  shell: |
+     source ~/stackrc
+     openstack overcloud roles generate --roles-path /usr/share/openstack-tripleo-heat-templates/roles -o /home/stack/cell1/cell_roles_data.yaml Compute CellController
+
+- name: copy the cell1.yaml environment file
+  copy:
+        src: templates/cell1.yaml
+        dest: /home/stack/cell1/cell1.yaml
+
+- name: copy the post_tasks script
+  copy:
+        src: templates/post_tasks.sh
+        dest: /home/stack/cell1/post_tasks.sh
+        mode: '0755'
+
+- name: copy overcloud deploy script to create deploy script for multi cell deployment
+  copy:
+        src: /home/stack/overcloud_deploy.sh
+        dest: /home/stack/overcloud_cell_deployment.sh
+        remote_src: yes
+
+- name: create overcloud deploy command including the cell env files
+  include: ../common/append_env_to_script.yml
+  loop_control:
+        loop_var: confchange
+  with_items:
+        - step: "Add additional cell Deployment"
+          script: "~/overcloud_cell_deployment.sh"
+          environment_file:
+            - "/home/stack/cell1/cell1.yaml"
+            - "/home/stack/cell1/cell-input.yaml"
+          role_file:
+            - "/home/stack/cell1/cell_roles_data.yaml"
+
+- name: change the stack name
+  replace:
+        path: /home/stack/overcloud_cell_deployment.sh
+        regexp: '--stack overcloud'
+        replace: '--stack cell1'

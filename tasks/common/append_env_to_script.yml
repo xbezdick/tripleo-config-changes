@@ -18,6 +18,14 @@
   with_items: "{{ confchange.environment_file }}"
   when: item|length > 0
 
+- name: Append params to {{ confchange.step }} script
+  lineinfile:
+      dest: "{{ confchange.script }}"
+      insertbefore: "{{ deploy_lastline.stdout }}"
+      line: '-r {{ item }} \'
+  with_items: "{{ confchange.role_file }}"
+  when: item|length > 0
+
 - name: Append options to {{ confchange.step }} script
   lineinfile:
       dest: "{{ confchange.script }}"

@@ -10,3 +10,7 @@
 - name: tripleo modify image
   import_playbook: tasks/ansible_tripleo_modify_image/main.yml
   when: test.tripleo.modify.image|default(False)
+
+- name: multi cell deployment
+  import_playbook: tasks/multi_cell_v2_osp16/main.yml
+  when: test.add.additional.cell|default(False)

@@ -1,0 +1,12 @@
+---
+- name: Post tasks after deployment
+  hosts: undercloud-0
+  tasks:
+    - name: validate the deployment success
+      shell: |
+         source ~/stackrc
+         openstack overcloud status --plan cell1 | grep "DEPLOY_SUCCESS"
+      register: status
+      failed_when: status.rc != 0
+    - name: post tasks script
+      command: sh /home/stack/cell1/post_tasks.sh

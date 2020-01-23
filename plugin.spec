@@ -23,6 +23,11 @@ subparsers:
                       help: |
                           Enable tripleo modify image ansible role
                       default: False
+                  add-additional-cell:
+                      type: Bool
+                      help: |
+                          Enable multi cell deployment
+                      default: False
 
             - title: Overcloud Options
               options:
