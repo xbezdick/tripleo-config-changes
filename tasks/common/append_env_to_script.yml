@@ -23,7 +23,7 @@
       dest: "{{ confchange.script }}"
       insertbefore: "{{ deploy_lastline.stdout }}"
       line: '-r {{ item }} \'
-  with_items: "{{ confchange.role_file }}"
+  with_items: "{{ confchange.role_file | default([]) }}"
   when: item|length > 0
 
 - name: Append options to {{ confchange.step }} script
