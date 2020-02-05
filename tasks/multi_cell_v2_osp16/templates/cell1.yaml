@@ -1,36 +1,38 @@
 resource_registry:
-  OS::TripleO::Network::Ports::OVNDBsVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/noop.yaml
-  OS::TripleO::Network::Ports::RedisVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/noop.yaml
-  OS::TripleO::Network::External: OS::Heat::None
-  OS::TripleO::Network::InternalApi: OS::Heat::None
-  OS::TripleO::Network::Storage: OS::Heat::None
-  OS::TripleO::Network::StorageMgmt: OS::Heat::None
-  OS::TripleO::Network::Tenant: OS::Heat::None
-  OS::TripleO::Network::Management: OS::Heat::None
-  OS::TripleO::CellController::Net::SoftwareConfig: /home/stack/virt/network/three-nics-vlans/controller.yaml
+ OS::TripleO::Network::Ports::OVNDBsVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/noop.yaml
+ OS::TripleO::Network::Ports::RedisVipPort: /usr/share/openstack-tripleo-heat-templates/network/ports/noop.yaml
+ OS::TripleO::Network::External: OS::Heat::None
+ OS::TripleO::Network::InternalApi: OS::Heat::None
+ OS::TripleO::Network::Storage: OS::Heat::None
+ OS::TripleO::Network::StorageMgmt: OS::Heat::None
+ OS::TripleO::Network::Tenant: OS::Heat::None
+ OS::TripleO::Network::Management: OS::Heat::None
+ OS::TripleO::CellController::Net::SoftwareConfig: /home/stack/virt/network/three-nics-vlans/controller.yaml
 
 parameter_defaults:
-  # new CELL Parameter to reflect that this is an additional CELL
-  NovaAdditionalCell: True
+ # new CELL Parameter to reflect that this is an additional CELL
+ # enable local meta data api per cell
+ NovaAdditionalCell: True
+ NovaLocalMetadataPerCell: True
 
-  # The DNS names for the VIPs for the cell
-  CloudName: cell1.ooo.test
-  CloudNameInternal: cell1.internalapi.ooo.test
-  CloudNameStorage: cell1.storage.ooo.test
-  CloudNameStorageManagement: cell1.storagemgmt.ooo.test
-  CloudNameCtlplane: cell1.ctlplane.ooo.test
+ # The DNS names for the VIPs for the cell
+ CloudName: cell1.ooo.test
+ CloudNameInternal: cell1.internalapi.ooo.test
+ CloudNameStorage: cell1.storage.ooo.test
+ CloudNameStorageManagement: cell1.storagemgmt.ooo.test
+ CloudNameCtlplane: cell1.ctlplane.ooo.test
 
-  # Flavors used for the cell controller and computes
-  OvercloudCellControllerFlavor: compute
-  OvercloudComputeFlavor: compute
+ # Flavors used for the cell controller and computes
+ OvercloudCellControllerFlavor: compute
+ OvercloudComputeFlavor: compute
 
-  # number of controllers/computes in the cell
-  CellControllerCount: 1
-  ComputeCount: 1
+ # number of controllers/computes in the cell
+ CellControllerCount: 1
+ ComputeCount: 1
 
-  # set the compute hostname to cellname-compute-X
-  ComputeHostnameFormat: 'cell1-compute-%index%'
-  # since we set the PublicVirtualFixedIPs in the overcloud env file,
-  # we have to set a pub vip for the cell controller as well
-  PublicVirtualFixedIPs:
-  -   ip_address: 10.0.0.6
+ # set the compute hostname to cellname-compute-X
+ ComputeHostnameFormat: 'cell1-compute-%index%'
+ # since we set the PublicVirtualFixedIPs in the overcloud env file,
+ # we have to set a pub vip for the cell controller as well
+ PublicVirtualFixedIPs:
+ - ip_address: 10.0.0.6
