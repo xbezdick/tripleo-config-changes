@@ -8,6 +8,11 @@ for i in overcloud cell1; do \
         --stack ${i}; \
 done
 
+CELL_CTRL_IP=$(openstack server list -f value -c Networks --name cellcontrol-0 | sed 's/ctlplane=//')
+CTRL_IP=$(openstack server list -f value -c Networks --name controller-0 | sed 's/ctlplane=//')
+CELL_INTERNALAPI_INFO=$(ssh heat-admin@${CELL_CTRL_IP} egrep cell1.internalapi /etc/hosts)
+ansible -i /usr/bin/tripleo-ansible-inventory Controller -b -m lineinfile -a "dest=/etc/hosts line=\"$CELL_INTERNALAPI_INFO\""
+
 ANSIBLE_HOST_KEY_CHECKING=False \
 ANSIBLE_SSH_RETRIES=3 \
 ansible-playbook -i /home/stack/inventories \

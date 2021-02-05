@@ -16,11 +16,11 @@ parameter_defaults:
  NovaLocalMetadataPerCell: True
 
  # The DNS names for the VIPs for the cell
- CloudName: cell1.ooo.test
- CloudNameInternal: cell1.internalapi.ooo.test
- CloudNameStorage: cell1.storage.ooo.test
- CloudNameStorageManagement: cell1.storagemgmt.ooo.test
- CloudNameCtlplane: cell1.ctlplane.ooo.test
+ CloudName: cell1.{{ cloud_domain_suffix }}
+ CloudNameInternal: cell1.internalapi.{{ cloud_domain_suffix }}
+ CloudNameStorage: cell1.storage.{{ cloud_domain_suffix }}
+ CloudNameStorageManagement: cell1.storagemgmt.{{ cloud_domain_suffix }}
+ CloudNameCtlplane: cell1.ctlplane.{{ cloud_domain_suffix }}
 
  # Flavors used for the cell controller and computes
  OvercloudCellControllerFlavor: compute
@@ -28,7 +28,7 @@ parameter_defaults:
 
  # number of controllers/computes in the cell
  CellControllerCount: 1
- ComputeCount: 1
+ ComputeCount: 2
 
  # set the compute hostname to cellname-compute-X
  ComputeHostnameFormat: 'cell1-compute-%index%'
