@@ -36,6 +36,49 @@ subparsers:
                       help: Overrides the overcloud stack name
                       default: "overcloud"
 
+                  openstack-version:
+                       type: Value
+                       help: |
+                           The OpenStack under test version.
+                           Numbers are for OSP releases
+                           Names are for RDO releases
+                       choices:
+                           - "6"
+                           - "7"
+                           - "8"
+                           - "9"
+                           - "10"
+                           - "11"
+                           - "12"
+                           - "13"
+                           - "14"
+                           - "15"
+                           - "15-trunk"
+                           - "16"
+                           - "16-trunk"
+                           - "16.1"
+                           - "16.1-trunk"
+                           - "16.2"
+                           - "16.2-trunk"
+                           - "17"
+                           - "17.0"
+                           - "17.1"
+                           - "17-trunk"
+                           - liberty
+                           - kilo
+                           - liberty
+                           - mitaka
+                           - newton
+                           - ocata
+                           - pike
+                           - queens
+                           - rocky
+                           - stein
+                           - train
+                           - ussuri
+                           - victoria
+                           - wallaby
+
             - title: tripleo-modify-image options
               options:
                   tripleo-modify-container:

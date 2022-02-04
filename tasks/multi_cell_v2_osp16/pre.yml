@@ -12,6 +12,13 @@
   shell: |
         source ~/stackrc
         openstack overcloud cell export cell1 -f -o /home/stack/cell1/cell-input.yaml
+  when: test.openstack.version|default(overcloud_version)|openstack_release < 16.2
+
+- name: export cell-input.yaml file 16.2+
+  shell: |
+        source ~/stackrc
+        openstack overcloud cell export -f --output-file /home/stack/cell1/cell-input.yaml
+  when: test.openstack.version|default(overcloud_version)|openstack_release >= 16.2
 
 - name: Generate a role file
   shell: |
