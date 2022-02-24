@@ -8,17 +8,26 @@
         path: /home/stack/cell1
         state: directory
 
+- name: parse provided OSP version
+  set_fact:
+    oc_version: "{{ test.openstack.version|default(overcloud_version) }}"
+    osp_release: "{{ test.openstack.version|default(overcloud_version)|openstack_release }}"
+
+- name: set OSP version conditional based on provided version
+  set_fact:
+    version_to_use: "{{ oc_version if oc_version | float | string == oc_version | string else osp_release }}"
+
 - name: export cell-input.yaml file
   shell: |
         source ~/stackrc
         openstack overcloud cell export cell1 -f -o /home/stack/cell1/cell-input.yaml
-  when: test.openstack.version|default(overcloud_version)|openstack_release < 16.2
+  when: version_to_use is version('16.2', '<')
 
 - name: export cell-input.yaml file 16.2+
   shell: |
         source ~/stackrc
         openstack overcloud cell export -f --output-file /home/stack/cell1/cell-input.yaml
-  when: test.openstack.version|default(overcloud_version)|openstack_release >= 16.2
+  when: version_to_use is version('16.2', '>=')
 
 - name: Generate a role file
   shell: |
