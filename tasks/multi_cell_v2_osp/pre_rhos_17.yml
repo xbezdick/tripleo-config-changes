@@ -1,0 +1,147 @@
+- name: download the cirros image for instance deployment post_tasks
+  get_url:
+        url: http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img
+        dest: /home/stack
+
+- name: create cell1 directory
+  file:
+        path: /home/stack/cell1
+        state: directory
+
+- name: Generate a role file
+  shell: |
+        source ~/stackrc
+        set -o pipefail
+        openstack overcloud roles generate --roles-path /usr/share/openstack-tripleo-heat-templates/roles -o /home/stack/cell1/cell_roles_data.yaml Compute CellController
+
+- name: export cell-input.yaml
+  shell: |
+        source ~/stackrc
+        set -o pipefail
+        openstack overcloud cell export -f --output-file /home/stack/cell1/cell-input.yaml --working-dir /home/stack/overcloud-deploy/overcloud/
+
+- name: copy cell1 baremetal deploy template
+  copy:
+        src: templates/rhos_17/baremetal_deployment.yaml
+        dest: /home/stack/cell1-baremetal-deployed.yaml
+
+- name: Provision the Cell1 ("baremetal") nodes
+  shell: |
+      source ~/stackrc
+      set -o pipefail
+      openstack overcloud node provision \
+      --network-config --stack cell1 \
+      -o /home/stack/templates/cell1-baremetal-deployed.yaml  /home/stack/cell1-baremetal-deployed.yaml | \
+      tee -a /home/stack/cell1_provision_nodes.log
+
+- name: Create Cell1 nets
+  shell: |
+      source ~/stackrc
+      set -o pipefail
+      openstack overcloud network provision /home/stack/virt/network/network_data_v2.yaml -o /home/stack/templates/cell1-networks-deployed.yaml 2>&1 | \
+      tee -a /home/stack/cell1_provision_01_net.log
+
+- name: Reserve VIPs for Cell1
+  shell: |
+      source ~/stackrc
+      set -o pipefail
+      openstack overcloud network vip provision --stack cell1 /home/stack/virt/network/vip_data.yaml -o /home/stack/templates/cell1-vip-deployed.yaml 2>&1 | \
+      tee -a /home/stack/cell1_provision_02_vip.log
+
+- name: Generate cell1.yaml
+  block:
+  - name: Get cloud names path
+    shell: |
+        grep cloud-names.yaml /home/stack/overcloud_deploy.sh | awk '{print $2}'
+    register: cloud_name_path
+
+  - name: Get Redis vip IP
+    shell: |
+        grep -i redis /home/stack/virt/public_vip.yaml | grep -Eo '([0-9]*\.){3}[0-9]*'
+    register: redis_vip_ip
+
+  - name: set Redis VIP
+    set_fact:
+      redis_vip: "{{ redis_vip_ip.stdout }}"
+
+  - name: Gather cloud domain suffix
+    shell: |
+        grep CloudDomain {{ cloud_name_path.stdout }} | awk '{print $2}'
+    register: cloud_domain_shell
+    when: cloud_name_path.stdout != "" | default(False)
+
+  - name: Set cloud domain suffix
+    set_fact:
+      cloud_domain_suffix: "{{ cloud_domain_shell.stdout | default('ooo.test')}}"
+
+  - name: copy the cell1.yaml environment file
+    template:
+          src: templates/rhos_17/cell1.yaml.j2
+          dest: /home/stack/cell1/cell1.yaml
+
+- name: copy the post_tasks script
+  copy:
+        src: templates/rhos_17/post_tasks.sh
+        dest: /home/stack/cell1/post_tasks.sh
+        mode: '0755'
+
+- name: copy overcloud deploy script to create deploy script for multi cell deployment
+  copy:
+        src: /home/stack/overcloud_deploy.sh
+        dest: /home/stack/overcloud_cell_deployment.sh
+        remote_src: yes
+
+- name: create overcloud deploy command including the cell env files
+  include: ../common/append_env_to_script.yml
+  loop_control:
+        loop_var: confchange
+  with_items:
+        - step: "Add additional cell Deployment"
+          script: "~/overcloud_cell_deployment.sh"
+          environment_file:
+            - "/home/stack/cell1/cell1.yaml"
+            - "/home/stack/cell1/cell-input.yaml"
+          role_file:
+            - "/home/stack/cell1/cell_roles_data.yaml"
+
+- name: change the stack name
+  replace:
+        path: /home/stack/overcloud_cell_deployment.sh
+        regexp: '--stack overcloud'
+        replace: '--stack cell1'
+
+- name: Update vip deployed path
+  replace:
+        path: /home/stack/overcloud_cell_deployment.sh
+        regexp: '-e /home/stack/templates/overcloud-vip-deployed.yaml'
+        replace: '-e /home/stack/templates/cell1-vip-deployed.yaml'
+
+- name: Update networks deployed path
+  replace:
+        path: /home/stack/overcloud_cell_deployment.sh
+        regexp: '-e /home/stack/templates/overcloud-networks-deployed.yaml'
+        replace: '-e /home/stack/templates/cell1-networks-deployed.yaml'
+
+- name: Change baremetal deployed path
+  replace:
+        path: /home/stack/overcloud_cell_deployment.sh
+        regexp: '-e /home/stack/templates/overcloud-baremetal-deployed.yaml'
+        replace: '-e /home/stack/templates/cell1-baremetal-deployed.yaml'
+
+- name: Remove cloud names yaml if present
+  ansible.builtin.lineinfile:
+    path: /home/stack/overcloud_cell_deployment.sh
+    state: absent
+    regexp: 'cloud-names'
+
+- name: Remove public vip yaml if present
+  ansible.builtin.lineinfile:
+    path: /home/stack/overcloud_cell_deployment.sh
+    state: absent
+    regexp: 'public_vip'
+
+- name: Append log-file invocation line to cell1 deploy script
+  lineinfile:
+      dest: "/home/stack/overcloud_cell_deployment.sh"
+      regexp: "^--log-file .*"
+      line: "--log-file cell1_deployment_{{ 100 | random }}.log"

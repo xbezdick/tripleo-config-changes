@@ -12,5 +12,5 @@
   when: test.tripleo.modify.image|default(False)
 
 - name: multi cell deployment
-  import_playbook: tasks/multi_cell_v2_osp16/main.yml
+  import_playbook: tasks/multi_cell_v2_osp/main.yml
   when: test.add.additional.cell|default(False)

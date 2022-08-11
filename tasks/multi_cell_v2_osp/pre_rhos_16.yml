@@ -20,13 +20,13 @@
 - name: export cell-input.yaml file
   shell: |
         source ~/stackrc
-        openstack overcloud cell export cell1 -f -o /home/stack/cell1/cell-input.yaml
+        sudo --preserve-env openstack overcloud cell export cell1 -f -o /home/stack/cell1/cell-input.yaml
   when: version_to_use is version('16.2', '<')
 
 - name: export cell-input.yaml file 16.2+
   shell: |
         source ~/stackrc
-        openstack overcloud cell export -f --output-file /home/stack/cell1/cell-input.yaml
+        sudo --preserve-env openstack overcloud cell export -f --output-file /home/stack/cell1/cell-input.yaml
   when: version_to_use is version('16.2', '>=')
 
 - name: Generate a role file
@@ -53,12 +53,12 @@
 
   - name: copy the cell1.yaml environment file
     template:
-          src: templates/cell1.yaml.j2
+          src: templates/rhos_16/cell1.yaml.j2
           dest: /home/stack/cell1/cell1.yaml
 
 - name: copy the post_tasks script
   copy:
-        src: templates/post_tasks.sh
+        src: templates/rhos_16/post_tasks.sh
         dest: /home/stack/cell1/post_tasks.sh
         mode: '0755'
 

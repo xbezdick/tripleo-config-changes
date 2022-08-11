@@ -1,0 +1,42 @@
+- name: CellController
+  count: 1
+  hostname_format: cell1-controller-%index%
+  defaults:
+    profile: control
+    network_config:
+      default_route_network:
+      - external
+      template: /home/stack/virt/network/three-nics-vlans/controller.j2
+    networks:
+    - network: ctlplane
+      vif: true
+    - network: storage
+    - network: storage_mgmt
+    - network: internal_api
+    - network: tenant
+    - network: external
+  ansible_playbooks:
+    - playbook: /usr/share/ansible/tripleo-playbooks/cli-overcloud-node-growvols.yaml
+      extra_vars:
+        growvols_args: >
+          /=8GB
+          /tmp=1GB
+          /var/log=3GB
+          /var/log/audit=1GB
+          /home=1GB
+          /srv=10GB
+          /var=100%
+- name: Compute
+  count: 2
+  hostname_format: cell1-compute-%index%
+  defaults:
+    profile: compute
+    network_config:
+      template: /home/stack/virt/network/three-nics-vlans/compute-dvr.j2
+    networks:
+    - network: ctlplane
+      vif: true
+    - network: storage
+    - network: internal_api
+    - network: tenant
+    - network: external

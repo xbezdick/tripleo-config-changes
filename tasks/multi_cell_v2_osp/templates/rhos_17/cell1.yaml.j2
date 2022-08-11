@@ -1,0 +1,30 @@
+parameter_defaults:
+ # new CELL Parameter to reflect that this is an additional CELL
+ # enable local meta data api per cell
+ NovaAdditionalCell: True
+ NovaLocalMetadataPerCell: True
+ ManageNetworks: False
+ RedisVirtualFixedIPs: [ { 'ip_address': '{{ redis_vip }}' } ]
+ CellControllerNetworkConfigTemplate: '/home/stack/virt/network/three-nics-vlans/controller.yaml'
+
+ # The DNS names for the VIPs for the cell
+ CloudName: cell1.{{ cloud_domain_suffix }}
+ CloudNameInternal: cell1.internalapi.{{ cloud_domain_suffix }}
+ CloudNameStorage: cell1.storage.{{ cloud_domain_suffix }}
+ CloudNameStorageManagement: cell1.storagemgmt.{{ cloud_domain_suffix }}
+ CloudNameCtlplane: cell1.ctlplane.{{ cloud_domain_suffix }}
+
+ # Flavors used for the cell controller and computes
+ OvercloudCellControllerFlavor: compute
+ OvercloudComputeFlavor: compute
+
+ # number of controllers/computes in the cell
+ CellControllerCount: 1
+ ComputeCount: 2
+
+ # set the compute hostname to cellname-compute-X
+ ComputeHostnameFormat: 'cell1-compute-%index%'
+ # since we set the PublicVirtualFixedIPs in the overcloud env file,
+ # we have to set a pub vip for the cell controller as well
+ PublicVirtualFixedIPs:
+ - ip_address: 10.0.0.6

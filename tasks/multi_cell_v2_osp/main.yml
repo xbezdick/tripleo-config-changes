@@ -1,0 +1,22 @@
+- name: Muti cell deployment for OSP
+  hosts: undercloud-0
+  gather_facts: yes
+  any_errors_fatal: true
+  pre_tasks:
+    - name: parse provided OSP version
+      set_fact:
+        oc_version: "{{ test.openstack.version|default(overcloud_version) }}"
+        osp_release: "{{ test.openstack.version|default(overcloud_version)|openstack_release }}"
+    - name: set OSP version conditional based on provided version
+      set_fact:
+        version_to_use: "{{ oc_version if oc_version | float | string == oc_version | string else osp_release }}"
+    - import_tasks: pre_rhos_17.yml
+      when: version_to_use is version('17.0', '>=')
+    - import_tasks: pre_rhos_16.yml
+      when: version_to_use is version('16.2', '<=')
+
+  tasks:
+    - import_tasks: deploy.yml
+
+- name: Run post noop validation
+  import_playbook: post.yml
