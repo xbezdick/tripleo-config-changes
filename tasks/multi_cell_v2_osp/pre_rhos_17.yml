@@ -25,6 +25,33 @@
         src: templates/rhos_17/baremetal_deployment.yaml
         dest: /home/stack/cell1-baremetal-deployed.yaml
 
+- name: Determine available controllers to use as cell controller
+  shell: |
+        source ~/stackrc
+        openstack baremetal node list -c Name -f value -c 'Provisioning State' -f value | grep available | grep control | head -1 | cut -d ' ' -f 1 | wc -l
+  register: controller_count
+
+- name: Convert Compute role to Controller
+  block:
+  - name: Get Compute UUID
+    shell: "source ~/stackrc; openstack baremetal node list -c Name -f value -c 'Instance UUID' -f value -c UUID -f value | grep None | head -1 | cut -d ' ' -f 1"
+    register: compute_node_uuid
+
+  - name: Get Controller UUID
+    shell: "source ~/stackrc; openstack baremetal node list -c Name -f value -c 'Instance UUID' -f value -c UUID -f value | grep controller | head -1 | cut -d ' ' -f 1"
+    register: controller_node_uuid
+
+  - name: Get Controller capabilites;
+    shell: "source ~/stackrc; openstack baremetal node show {{ controller_node_uuid.stdout }} -c properties -f json | jq -r '.properties.capabilities'"
+    register: controller_properties
+
+  - name: Unset Compute properties
+    shell: "source ~/stackrc; openstack baremetal node unset --property capabilities {{ compute_node_uuid.stdout }}"
+
+  - name: Set compute properties with controller properties
+    shell: "source ~/stackrc; openstack baremetal node set --property capabilities={{ controller_properties.stdout }} {{ compute_node_uuid.stdout }}"
+  when: controller_count.stdout | int == 0
+
 - name: Provision the Cell1 ("baremetal") nodes
   shell: |
       source ~/stackrc
@@ -145,3 +172,4 @@
       dest: "/home/stack/overcloud_cell_deployment.sh"
       regexp: "^--log-file .*"
       line: "--log-file cell1_deployment_{{ 100 | random }}.log"
+

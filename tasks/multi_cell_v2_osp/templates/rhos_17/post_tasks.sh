@@ -76,7 +76,7 @@ source ~/stackrc
 export CONTAINERCLI='podman'
 set +e
 CTRL_IP=$(ansible-inventory -i /home/stack/inventories --host controller-0 | jq -r .ctlplane_ip)
-$(ssh heat-admin@${CTRL_IP} sudo ${CONTAINERCLI} exec -i -u root nova_conductor \
+$(ssh tripleo-admin@${CTRL_IP} sudo ${CONTAINERCLI} exec -i -u root nova_conductor \
 nova-manage db archive_deleted_rows --until-complete --all-cells >> /dev/null 2>&1)
 set -e
 source ~/overcloudrc
