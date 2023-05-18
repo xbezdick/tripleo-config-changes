@@ -87,6 +87,50 @@
         regexp: "--stack {{ test.overcloud.stack }}"
         replace: '--stack cell1'
 
+- name: check for ceph deployment
+  shell: |
+      grep ceph-ansible.yaml /home/stack/overcloud_cell_deployment.sh
+  failed_when: false
+  register: ceph_present
+
+- name: Switch ceph to external
+  when: ceph_present.rc == 0
+  block:
+      - name: Switch ceph-ansible to ceph-ansible-external
+        replace:
+            path: /home/stack/overcloud_cell_deployment.sh
+            regexp: "ceph-ansible.yaml"
+            replace: 'ceph-ansible-external.yaml'
+      - name: Get control stack config
+        shell: |
+            source ~/stackrc
+            openstack overcloud config download --name {{ test.overcloud.stack }}
+      - name: Get CephClusterFSID
+        shell: |
+            grep " fsid:" tripleo-config/overcloud/external_deploy_steps_tasks.yaml | awk '{print $2}'
+        register: fsid
+      - name: Get CephClientKey
+        shell: |
+            grep -A 1 openstack_client tripleo-config/{{ test.overcloud.stack }}/external_deploy_steps_tasks.yaml | grep key | awk '{print $2}'
+        register: key
+      - name: Get CephExternalMonHost
+        shell: |
+            grep cont tripleo-config/{{ test.overcloud.stack }}/global_vars.yaml | grep storage$ | awk '{print $2}' |  paste -sd "," -
+        register: mons
+      - name: Create cell1 ceph.yaml
+        copy:
+            dest: "/home/stack/cell1/ceph.yaml"
+            content: |
+              parameter_defaults:
+                CephClusterFSID: "{{ fsid.stdout }}"
+                CephClientKey: "{{ key.stdout }}"
+                CephExternalMonHost: "{{ mons.stdout }}"
+      - name: Add ceph template to deploy script
+        replace:
+            path: /home/stack/overcloud_cell_deployment.sh
+            regexp: "/home/stack/cell1/cell1.yaml"
+            replace: '/home/stack/cell1/cell1.yaml -e /home/stack/cell1/ceph.yaml'
+
 - name: Remove cloud names yaml if present
   ansible.builtin.lineinfile:
     path: /home/stack/overcloud_cell_deployment.sh
