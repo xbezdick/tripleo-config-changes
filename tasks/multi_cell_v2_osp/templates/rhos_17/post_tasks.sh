@@ -13,13 +13,13 @@ ansible-playbook -i /home/stack/inventories \
     -e tripleo_cellv2_containercli=podman
 
 # add all computes
-source ~/overcloudrc
+source ~/{{ test.overcloud.stack }}rc
 openstack aggregate create cell1 --zone cell1
 for i in $(openstack hypervisor list -f value -c 'Hypervisor Hostname'| grep cell1) ; do openstack aggregate add host cell1 $i ; done
 
 ##Verify the multi cell deployment by deploying the cell and archiving it
 
-source ~/overcloudrc
+source ~/{{ test.overcloud.stack }}rc
 openstack image create --file ~/cirros-0.5.2-x86_64-disk.img cirros-cell
 if [ -z "`openstack network list | grep private-cell1`" ];then
   openstack network create private-cell1
@@ -79,7 +79,7 @@ CTRL_IP=$(ansible-inventory -i /home/stack/inventories --host controller-0 | jq 
 $(ssh tripleo-admin@${CTRL_IP} sudo ${CONTAINERCLI} exec -i -u root nova_conductor \
 nova-manage db archive_deleted_rows --until-complete --all-cells >> /dev/null 2>&1)
 set -e
-source ~/overcloudrc
+source ~/{{ test.overcloud.stack }}rc
 deleted_servers=$(openstack server list --deleted --all-projects -c ID -f value)
 # Fail if any deleted servers were found.
 if [[ -n "$deleted_servers" ]]; then

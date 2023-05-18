@@ -31,7 +31,7 @@
 - name: register vipmap
   shell: |
       source ~/stackrc
-      openstack stack output show overcloud VipMap -f json
+      openstack stack output show  {{ test.overcloud.stack }} VipMap -f json
   register: vipmap
 
 - name: set public vip fact
