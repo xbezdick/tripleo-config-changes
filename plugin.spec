@@ -28,6 +28,12 @@ subparsers:
                       help: |
                           Enable multi cell deployment
                       default: False
+                  cell-controller-count:
+                      type: Value
+                      help: The amount of cell controller nodes to deploy
+                  cell-compute-count:
+                      type: Value
+                      help: The amount of cell compute nodes to deploy
 
             - title: Overcloud Options
               options:

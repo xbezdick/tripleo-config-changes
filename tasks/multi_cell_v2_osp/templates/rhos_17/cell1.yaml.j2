@@ -19,8 +19,8 @@ parameter_defaults:
  OvercloudComputeFlavor: compute
 
  # number of controllers/computes in the cell
- CellControllerCount: 1
- ComputeCount: 2
+ CellControllerCount: {{ test.cell.controller.count | default(1) }}
+ ComputeCount: {{ test.cell.compute.count | default(2) }}
 
  # set the compute hostname to cellname-compute-X
  ComputeHostnameFormat: 'cell1-compute-%index%'

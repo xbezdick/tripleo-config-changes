@@ -1,5 +1,5 @@
 - name: CellController
-  count: 1
+  count: {{ test.cell.controller.count | default(1) }}
   hostname_format: cell1-controller-%index%
   defaults:
     profile: control
@@ -27,7 +27,7 @@
           /srv=10GB
           /var=100%
 - name: Compute
-  count: 2
+  count: {{ test.cell.compute.count | default(2) }}
   hostname_format: cell1-compute-%index%
   defaults:
     profile: compute
