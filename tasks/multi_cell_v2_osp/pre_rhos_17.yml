@@ -21,8 +21,8 @@
         openstack overcloud cell export --control-plane-stack {{ test.overcloud.stack }} -f --output-file /home/stack/cell1/cell-input.yaml --working-dir /home/stack/overcloud-deploy/overcloud/
 
 - name: copy cell1 baremetal deploy template
-  copy:
-        src: templates/rhos_17/baremetal_deployment.yaml
+  template:
+        src: templates/rhos_17/baremetal_deployment.yaml.j2
         dest: /home/stack/cell1-baremetal-deployed.yaml
 
 - name: Determine available controllers to use as cell controller
