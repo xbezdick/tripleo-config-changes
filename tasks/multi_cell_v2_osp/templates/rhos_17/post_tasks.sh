@@ -20,7 +20,7 @@ for i in $(openstack hypervisor list -f value -c 'Hypervisor Hostname'| grep cel
 ##Verify the multi cell deployment by deploying the cell and archiving it
 
 source ~/{{ test.overcloud.stack }}rc
-openstack image create --file ~/cirros-0.5.2-x86_64-disk.img cirros-cell
+openstack image create --disk-format qcow2 --container-format bare --file ~/cirros-0.5.2-x86_64-disk.img cirros-cell
 if [ -z "`openstack network list | grep private-cell1`" ];then
   openstack network create private-cell1
   openstack subnet create --gateway 192.168.100.1 --dhcp --network private-cell1 --subnet-range 192.168.100.0/24 private-cell1
