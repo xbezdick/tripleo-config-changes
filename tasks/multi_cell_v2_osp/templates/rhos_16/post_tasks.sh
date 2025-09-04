@@ -47,26 +47,44 @@ done
 
 openstack server create --flavor m1.extra_tiny --image cirros-cell --availability-zone nova test1-overcloud
 
+RESULT=''
 counter=0
-until [ $(openstack server list -f value -c Status --name test1-overcloud) == ACTIVE ]
+until [ ${RESULT} == ACTIVE ]
 do
    sleep 1
    [[ counter -eq $max_retry ]] && echo "Failed!" && exit 1
    echo "Waiting for test1-overcloud to become Active. Trying #$counter time"
    ((counter++))
+   RESULT=$(openstack server list -f value -c Status --name test1-overcloud)
+   if [ ${RESULT} == ERROR ]; then
+	   openstack server show -f json test1-overcloud
+	   openstack server delete test1-overcloud
+	   sleep 10
+           openstack server create --flavor m1.extra_tiny --image cirros-cell --availability-zone nova test1-overcloud
+	   RESULT=$(openstack server list -f value -c Status --name test1-overcloud)
+   fi
 done
 
 #deploy other instance on cell-1
 
 openstack server create --flavor m1.extra_tiny --image cirros-cell --availability-zone cell1 test1-cell1
 
+RESULT_CELL=''
 counter=0
-until [ $(openstack server list -f value -c Status --name test1-cell1) == ACTIVE ]
+until [ ${RESULT_CELL} == ACTIVE ]
 do
    sleep 1
    [[ counter -eq $max_retry ]] && echo "Failed!" && exit 1
    echo "Waiting for test1-cell1 server to become Active. Trying #$counter time"
    ((counter++))
+   RESULT_CELL=$(openstack server list -f value -c Status --name test1-cell1)
+   if [ ${RESULT_CELL} == ERROR ]; then
+	   openstack server show -f json test1-cell1
+	   openstack server delete test1-cell1
+	   sleep 20
+	   openstack server create --flavor m1.extra_tiny --image cirros-cell --availability-zone cell1 test1-cell1
+	   RESULT_CELL=$(openstack server list -f value -c Status --name test1-cell1)
+  fi
 done
 
 counter=0
