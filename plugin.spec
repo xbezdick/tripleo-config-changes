@@ -34,6 +34,11 @@ subparsers:
                   cell-compute-count:
                       type: Value
                       help: The amount of cell compute nodes to deploy
+                  deployment-files:
+                      type: Value
+                      help: |
+                          The folder containing the templates of the overcloud deployment.
+                      default: virt
 
             - title: Overcloud Options
               options:

@@ -65,14 +65,14 @@
   shell: |
       source ~/stackrc
       set -o pipefail
-      openstack overcloud network provision /home/stack/virt/network/network_data_v2.yaml -o /home/stack/templates/cell1-networks-deployed.yaml 2>&1 | \
+      openstack overcloud network provision /home/stack/{{ test.deployment.files }}/network/network_data_v2.yaml -o /home/stack/templates/cell1-networks-deployed.yaml 2>&1 | \
       tee -a /home/stack/cell1_provision_01_net.log
 
 - name: Reserve VIPs for Cell1
   shell: |
       source ~/stackrc
       set -o pipefail
-      openstack overcloud network vip provision --stack cell1 /home/stack/virt/network/vip_data.yaml -o /home/stack/templates/cell1-vip-deployed.yaml 2>&1 | \
+      openstack overcloud network vip provision --stack cell1 /home/stack/{{ test.deployment.files }}/network/vip_data.yaml -o /home/stack/templates/cell1-vip-deployed.yaml 2>&1 | \
       tee -a /home/stack/cell1_provision_02_vip.log
 
 - name: Generate cell1.yaml
@@ -84,7 +84,7 @@
 
   - name: Get Redis vip IP
     shell: |
-        grep -i redis /home/stack/virt/public_vip.yaml | grep -Eo '([0-9]*\.){3}[0-9]*'
+        grep -i redis /home/stack/{{ test.deployment.files }}/public_vip.yaml | grep -Eo '([0-9]*\.){3}[0-9]*'
     register: redis_vip_ip
 
   - name: set Redis VIP

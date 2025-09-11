@@ -6,7 +6,7 @@
     network_config:
       default_route_network:
       - external
-      template: /home/stack/virt/network/three-nics-vlans/controller.j2
+      template: /home/stack/{{ test.deployment.files }}/network/three-nics-vlans/controller.j2
     networks:
     - network: ctlplane
       vif: true
@@ -32,7 +32,7 @@
   defaults:
     profile: compute
     network_config:
-      template: /home/stack/virt/network/three-nics-vlans/compute-dvr.j2
+      template: /home/stack/{{ test.deployment.files }}/network/three-nics-vlans/compute-dvr.j2
     networks:
     - network: ctlplane
       vif: true

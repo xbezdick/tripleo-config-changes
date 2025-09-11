@@ -5,7 +5,7 @@ parameter_defaults:
  NovaLocalMetadataPerCell: True
  ManageNetworks: False
  RedisVirtualFixedIPs: [ { 'ip_address': '{{ redis_vip }}' } ]
- CellControllerNetworkConfigTemplate: '/home/stack/virt/network/three-nics-vlans/controller.yaml'
+ CellControllerNetworkConfigTemplate: '/home/stack/{{ test.deployment.files }}/network/three-nics-vlans/controller.yaml'
 
  # The DNS names for the VIPs for the cell
  CloudName: cell1.{{ cloud_domain_suffix }}
