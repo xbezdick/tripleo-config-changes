@@ -10,7 +10,7 @@
     - name: Print stack failures
       shell: |
         set -o pipefail
-        source /home/stack/stackrc
+        source {{ ansible_env.HOME }}/stackrc
         openstack stack failures list --long {{ test.overcloud.stack }} 2>&1 | \
         tee {{ overcloud_deploy_script|default('~/overcloud_deploy.sh')|splitext|first }}_failures.log
 

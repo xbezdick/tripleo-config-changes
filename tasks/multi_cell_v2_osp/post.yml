@@ -9,4 +9,4 @@
       register: status
       failed_when: status.rc != 0
     - name: post tasks script
-      command: sh /home/stack/cell1/post_tasks.sh
+      command: sh {{ ansible_env.HOME }}/cell1/post_tasks.sh

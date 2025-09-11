@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 test -f ~/stackrc && source ~/stackrc
-mkdir -p /home/stack/inventories
+mkdir -p {{ ansible_env.HOME }}/inventories
 
-cp ~/overcloud-deploy/overcloud/config-download/overcloud/tripleo-ansible-inventory.yaml /home/stack/inventories/overcloud.yaml
-cp ~/overcloud-deploy/cell1/config-download/cell1/tripleo-ansible-inventory.yaml /home/stack/inventories/cell1.yaml
+cp ~/overcloud-deploy/overcloud/config-download/overcloud/tripleo-ansible-inventory.yaml {{ ansible_env.HOME }}/inventories/overcloud.yaml
+cp ~/overcloud-deploy/cell1/config-download/cell1/tripleo-ansible-inventory.yaml {{ ansible_env.HOME }}/inventories/cell1.yaml
 ANSIBLE_HOST_KEY_CHECKING=False \
 ANSIBLE_SSH_RETRIES=3 \
-ansible-playbook -i /home/stack/inventories \
+ansible-playbook -i {{ ansible_env.HOME }}/inventories \
     /usr/share/ansible/tripleo-playbooks/create-nova-cell-v2.yaml \
     -e tripleo_cellv2_cell_name=cell1 \
     -e tripleo_cellv2_containercli=podman
@@ -75,7 +75,7 @@ done
 source ~/stackrc
 export CONTAINERCLI='podman'
 set +e
-CTRL_IP=$(ansible-inventory -i /home/stack/inventories --host controller-0 | jq -r .ctlplane_ip)
+CTRL_IP=$(ansible-inventory -i {{ ansible_env.HOME }}/inventories --host controller-0 | jq -r .ctlplane_ip)
 $(ssh tripleo-admin@${CTRL_IP} sudo ${CONTAINERCLI} exec -i -u root nova_conductor \
 nova-manage db archive_deleted_rows --until-complete --all-cells >> /dev/null 2>&1)
 set -e

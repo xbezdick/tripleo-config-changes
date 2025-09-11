@@ -11,7 +11,7 @@
 - set_fact:
     rhosp_version: "{{ rhosp_release.stdout }}"
 
-- name: create /home/stack/{{ test.tripleo.modify.container }}-modify-dir  directory
+- name: create {{ ansible_env.HOME }}/{{ test.tripleo.modify.container }}-modify-dir  directory
   file:
     path: ~/{{ test.tripleo.modify.container }}-modify-dir
     state: directory
@@ -64,7 +64,7 @@
         set modify = {
           "modify_vars": {
             "tasks_from": "rpm_install.yml",
-            "rpms_path": "/home/stack/" ~ test.tripleo.modify.container ~ "-modify-dir"
+            "rpms_path": "{{ ansible_env.HOME }}/" ~ test.tripleo.modify.container ~ "-modify-dir"
           }
         }
       %}
@@ -83,7 +83,7 @@
         set modify = {
           "modify_vars": {
             "tasks_from": "modify_image.yml",
-            "modify_dir_path": "/home/stack/" ~ test.tripleo.modify.container ~ "-modify-dir"
+            "modify_dir_path": "{{ ansible_env.HOME }}/" ~ test.tripleo.modify.container ~ "-modify-dir"
           }
         }
       %}
@@ -94,7 +94,7 @@
     dest: "{{ ansible_env.HOME }}/containers-prepare-parameter-copy.yaml"
 
 - name: execute 'openstack tripleo container image prepare'
-  command: openstack tripleo container image prepare -e /home/stack/containers-prepare-parameter-copy.yaml --output-env-file /home/stack/prepare_output.yaml --log-file /var/log/tripleo-container-image-prepare.log --debug
+  command: openstack tripleo container image prepare -e {{ ansible_env.HOME }}/containers-prepare-parameter-copy.yaml --output-env-file {{ ansible_env.HOME }}/prepare_output.yaml --log-file /var/log/tripleo-container-image-prepare.log --debug
   register: openstack_tripleo_container_image_prepare
   become: true
 

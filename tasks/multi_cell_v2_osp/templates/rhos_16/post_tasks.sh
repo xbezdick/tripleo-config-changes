@@ -1,10 +1,10 @@
 #!/bin/bash
 source ~/stackrc
-mkdir -p /home/stack/inventories
+mkdir -p {{ ansible_env.HOME }}/inventories
 
 for i in overcloud cell1; do \
     /usr/bin/tripleo-ansible-inventory \
-        --static-yaml-inventory /home/stack/inventories/${i}.yaml \
+        --static-yaml-inventory {{ ansible_env.HOME }}/inventories/${i}.yaml \
         --stack ${i}; \
 done
 
@@ -15,7 +15,7 @@ ansible -i /usr/bin/tripleo-ansible-inventory Controller -b -m lineinfile -a "de
 
 ANSIBLE_HOST_KEY_CHECKING=False \
 ANSIBLE_SSH_RETRIES=3 \
-ansible-playbook -i /home/stack/inventories \
+ansible-playbook -i {{ ansible_env.HOME }}/inventories \
     /usr/share/ansible/tripleo-playbooks/create-nova-cell-v2.yaml \
     -e tripleo_cellv2_cell_name=cell1 \
     -e tripleo_cellv2_containercli=podman

@@ -1,11 +1,11 @@
 - name: download the cirros image for instance deployment post_tasks
   get_url:
         url: http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
-        dest: /home/stack
+        dest: "{{ ansible_env.HOME }}"
 
 - name: create cell1 directory
   file:
-        path: /home/stack/cell1
+        path: "{{ ansible_env.HOME }}/cell1"
         state: directory
 
 - name: parse provided OSP version
@@ -20,25 +20,25 @@
 - name: export cell-input.yaml file
   shell: |
         source ~/stackrc
-        sudo --preserve-env openstack overcloud cell export cell1 --control-plane-stack {{ test.overcloud.stack }} -f -o /home/stack/cell1/cell-input.yaml
+        sudo --preserve-env openstack overcloud cell export cell1 --control-plane-stack {{ test.overcloud.stack }} -f -o {{ ansible_env.HOME }}/cell1/cell-input.yaml
   when: version_to_use is version('16.2', '<')
 
 - name: export cell-input.yaml file 16.2+
   shell: |
         source ~/stackrc
-        sudo --preserve-env openstack overcloud cell export --control-plane-stack {{ test.overcloud.stack }} -f --output-file /home/stack/cell1/cell-input.yaml
+        sudo --preserve-env openstack overcloud cell export --control-plane-stack {{ test.overcloud.stack }} -f --output-file {{ ansible_env.HOME }}/cell1/cell-input.yaml
   when: version_to_use is version('16.2', '>=')
 
 - name: Generate a role file
   shell: |
      source ~/stackrc
-     openstack overcloud roles generate --roles-path /usr/share/openstack-tripleo-heat-templates/roles -o /home/stack/cell1/cell_roles_data.yaml Compute CellController
+     openstack overcloud roles generate --roles-path /usr/share/openstack-tripleo-heat-templates/roles -o {{ ansible_env.HOME }}/cell1/cell_roles_data.yaml Compute CellController
 
 - name: Generate cell1.yaml
   block:
   - name: Get cloud names path
     shell: |
-        grep cloud-names.yaml /home/stack/overcloud_deploy.sh | awk '{print $2}'
+        grep cloud-names.yaml {{ ansible_env.HOME }}/overcloud_deploy.sh | awk '{print $2}'
     register: cloud_name_path
 
   - name: Gather cloud domain suffix
@@ -54,18 +54,18 @@
   - name: copy the cell1.yaml environment file
     template:
           src: templates/rhos_16/cell1.yaml.j2
-          dest: /home/stack/cell1/cell1.yaml
+          dest: "{{ ansible_env.HOME }}/cell1/cell1.yaml"
 
 - name: copy the post_tasks script
   template:
         src: templates/rhos_16/post_tasks.sh
-        dest: /home/stack/cell1/post_tasks.sh
+        dest: "{{ ansible_env.HOME }}/cell1/post_tasks.sh"
         mode: '0755'
 
 - name: copy overcloud deploy script to create deploy script for multi cell deployment
   copy:
-        src: /home/stack/overcloud_deploy.sh
-        dest: /home/stack/overcloud_cell_deployment.sh
+        src: "{{ ansible_env.HOME }}/overcloud_deploy.sh"
+        dest: "{{ ansible_env.HOME }}/overcloud_cell_deployment.sh"
         remote_src: yes
 
 - name: create overcloud deploy command including the cell env files
@@ -76,20 +76,20 @@
         - step: "Add additional cell Deployment"
           script: "~/overcloud_cell_deployment.sh"
           environment_file:
-            - "/home/stack/cell1/cell1.yaml"
-            - "/home/stack/cell1/cell-input.yaml"
+            - "{{ ansible_env.HOME }}/cell1/cell1.yaml"
+            - "{{ ansible_env.HOME }}/cell1/cell-input.yaml"
           role_file:
-            - "/home/stack/cell1/cell_roles_data.yaml"
+            - "{{ ansible_env.HOME }}/cell1/cell_roles_data.yaml"
 
 - name: change the stack name
   replace:
-        path: /home/stack/overcloud_cell_deployment.sh
+        path: "{{ ansible_env.HOME }}/overcloud_cell_deployment.sh"
         regexp: "--stack {{ test.overcloud.stack }}"
         replace: '--stack cell1'
 
 - name: check for ceph deployment
   shell: |
-      grep ceph-ansible.yaml /home/stack/overcloud_cell_deployment.sh
+      grep ceph-ansible.yaml {{ ansible_env.HOME }}/overcloud_cell_deployment.sh
   failed_when: false
   register: ceph_present
 
@@ -98,7 +98,7 @@
   block:
       - name: Switch ceph-ansible to ceph-ansible-external
         replace:
-            path: /home/stack/overcloud_cell_deployment.sh
+            path: "{{ ansible_env.HOME }}/overcloud_cell_deployment.sh"
             regexp: "ceph-ansible.yaml"
             replace: 'ceph-ansible-external.yaml'
       - name: Get control stack config
@@ -119,7 +119,7 @@
         register: mons
       - name: Create cell1 ceph.yaml
         copy:
-            dest: "/home/stack/cell1/ceph.yaml"
+            dest: "{{ ansible_env.HOME }}/cell1/ceph.yaml"
             content: |
               parameter_defaults:
                 CephClusterFSID: "{{ fsid.stdout }}"
@@ -127,18 +127,18 @@
                 CephExternalMonHost: "{{ mons.stdout }}"
       - name: Add ceph template to deploy script
         replace:
-            path: /home/stack/overcloud_cell_deployment.sh
-            regexp: "/home/stack/cell1/cell1.yaml"
-            replace: '/home/stack/cell1/cell1.yaml -e /home/stack/cell1/ceph.yaml'
+            path: "{{ ansible_env.HOME }}/overcloud_cell_deployment.sh"
+            regexp: "{{ ansible_env.HOME }}/cell1/cell1.yaml"
+            replace: '{{ ansible_env.HOME }}/cell1/cell1.yaml -e {{ ansible_env.HOME }}/cell1/ceph.yaml'
 
 - name: Remove cloud names yaml if present
   ansible.builtin.lineinfile:
-    path: /home/stack/overcloud_cell_deployment.sh
+    path: "{{ ansible_env.HOME }}/overcloud_cell_deployment.sh"
     state: absent
     regexp: 'cloud-names'
 
 - name: Remove public vip yaml if present
   ansible.builtin.lineinfile:
-    path: /home/stack/overcloud_cell_deployment.sh
+    path: "{{ ansible_env.HOME }}/overcloud_cell_deployment.sh"
     state: absent
     regexp: 'public_vip'

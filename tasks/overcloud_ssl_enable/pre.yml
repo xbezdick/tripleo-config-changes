@@ -77,7 +77,7 @@
 
 - name: copy the self signed CA certification to our trusted store
   copy:
-      src: "/home/stack/overcloud-cacert.pem"
+      src: "{{ ansible_env.HOME }}/overcloud-cacert.pem"
       dest: "/etc/pki/ca-trust/source/anchors/"
       remote_src: yes
   become: yes
