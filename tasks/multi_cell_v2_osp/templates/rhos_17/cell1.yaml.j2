@@ -6,6 +6,7 @@ parameter_defaults:
  ManageNetworks: False
  RedisVirtualFixedIPs: [ { 'ip_address': '{{ redis_vip }}' } ]
  CellControllerNetworkConfigTemplate: '{{ ansible_env.HOME }}/{{ test.deployment.files }}/network/{{ (test.deployment.files == "virt") | ternary("three-nics-vlans","nic-configs") }}/controller.yaml'
+ ComputeNetworkConfigTemplate: '{{ ansible_env.HOME }}/{{ test.deployment.files }}/network/{{ (test.deployment.files == "virt") | ternary("three-nics-vlans","nic-configs") }}/compute.yaml'
 
  # The DNS names for the VIPs for the cell
  CloudName: cell1.{{ cloud_domain_suffix }}
