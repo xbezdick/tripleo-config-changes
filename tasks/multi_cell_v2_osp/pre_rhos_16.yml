@@ -107,7 +107,7 @@
             openstack overcloud config download --name {{ test.overcloud.stack }}
       - name: Get CephClusterFSID
         shell: |
-            grep " fsid:" tripleo-config/overcloud/external_deploy_steps_tasks.yaml | awk '{print $2}'
+            grep " fsid:" tripleo-config/{{ test.overcloud.stack }}/external_deploy_steps_tasks.yaml | awk '{print $2}'
         register: fsid
       - name: Get CephClientKey
         shell: |

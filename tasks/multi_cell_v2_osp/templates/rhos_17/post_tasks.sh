@@ -3,7 +3,7 @@ set -e
 test -f ~/stackrc && source ~/stackrc
 mkdir -p {{ ansible_env.HOME }}/inventories
 
-cp ~/overcloud-deploy/overcloud/config-download/overcloud/tripleo-ansible-inventory.yaml {{ ansible_env.HOME }}/inventories/overcloud.yaml
+cp ~/overcloud-deploy/{{ test.overcloud.stack }}/config-download/{{ test.overcloud.stack }}/tripleo-ansible-inventory.yaml {{ ansible_env.HOME }}/inventories/{{ test.overcloud.stack }}.yaml
 cp ~/overcloud-deploy/cell1/config-download/cell1/tripleo-ansible-inventory.yaml {{ ansible_env.HOME }}/inventories/cell1.yaml
 ANSIBLE_HOST_KEY_CHECKING=False \
 ANSIBLE_SSH_RETRIES=3 \

@@ -2,7 +2,7 @@
 source ~/stackrc
 mkdir -p {{ ansible_env.HOME }}/inventories
 
-for i in overcloud cell1; do \
+for i in {{ test.overcloud.stack }} cell1; do \
     /usr/bin/tripleo-ansible-inventory \
         --static-yaml-inventory {{ ansible_env.HOME }}/inventories/${i}.yaml \
         --stack ${i}; \

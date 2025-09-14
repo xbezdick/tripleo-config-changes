@@ -18,7 +18,7 @@
   shell: |
         source ~/stackrc
         set -o pipefail
-        openstack overcloud cell export --control-plane-stack {{ test.overcloud.stack }} -f --output-file {{ ansible_env.HOME }}/cell1/cell-input.yaml --working-dir {{ ansible_env.HOME }}/overcloud-deploy/overcloud/
+        openstack overcloud cell export --control-plane-stack {{ test.overcloud.stack }} -f --output-file {{ ansible_env.HOME }}/cell1/cell-input.yaml --working-dir {{ ansible_env.HOME }}/overcloud-deploy/{{ test.overcloud.stack }}/
 
 - name: copy cell1 baremetal deploy template
   template:
