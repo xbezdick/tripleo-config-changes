@@ -6,6 +6,10 @@
       mode: 0755
       remote_src: true
 
+- name: remove any old roles data from {{ confchange.script }}
+  shell: |
+    sed -i -e '/-r .*roles_data.*/d' {{ confchange.script }}
+
 - name: Store last deploy command line
   command: "tail -1 {{ confchange.script }}"
   register: deploy_lastline
